@@ -4,7 +4,8 @@ from tkinter import filedialog, messagebox, Scrollbar
 from ttkthemes import ThemedTk
 from collections import defaultdict
 import customtkinter as ctk
-import keyauth as api
+from keyauth import api
+#from keyauth import api
 import base64
 import re
 import base64
