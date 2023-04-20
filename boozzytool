@@ -1,0 +1,397 @@
+import tkinter as tk
+from tkinter import ttk
+from tkinter import filedialog, messagebox, Scrollbar
+from ttkthemes import ThemedTk
+from collections import defaultdict
+import customtkinter as ctk
+import keyauth
+import base64
+import re
+import base64
+import json
+import sv_ttk
+from datetime import datetime, timedelta
+import csv
+
+format = '%d-%m-%Y %H:%M:%S'
+
+
+import hashlib
+
+def getchecksum():
+    with open(__file__, 'rb') as f:
+        md5 = hashlib.md5()
+        while True:
+            data = f.read(8192)
+            if not data:
+                break
+            md5.update(data)
+    return md5.hexdigest()
+
+
+
+# Initialize KeyAuth instance
+keyauthapp.app(
+    name="BozzyTool",
+    ownerid="p40l2PVTY8",
+    secret="f9d3a3fe13390f471ae200b2890785d2b4285458e29f90996cc12bd904e2dd5e",
+    version="1.0",
+    hash_to_check=getchecksum()
+)
+
+def validate_license_key(license_entry, main_frame, license_window, output_text):
+    entered_key = license_entry.get().lower()
+
+    if keyauthapp.license(entered_key):  # Using KeyAuth for license validation
+        messagebox.showinfo("Success", "License key validated")
+        license_window.destroy()
+        main_app.deiconify()
+        notebook.select(main_frame)  # Switch to the main_frame
+    else:
+        messagebox.showerror("Error", "Invalid license key")
+
+# ...
+def analyze_file(file_path, start_date_time):
+    items = defaultdict(list)
+    runes = defaultdict(int)
+    keys = defaultdict(int)
+    excluded_starts = ["Defense:","Durability", "Required Strength", "Required Dexterity", "Required Level", "Quantity", "Unidentified", "Can be Inserted into Socketed Items", "Keep in Inventory to Gain Bonus"]
+
+    with open(file_path, "r", encoding="utf-8") as file:
+        lines = file.readlines()
+
+        i = 0
+        while i < len(lines):
+            line = lines[i].strip()
+
+            if re.match(r'\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}(:\d{2})?:?', line):
+                line_date_time = datetime.strptime(line.rstrip(':'), '%d-%m-%Y %H:%M:%S')
+                item_name = lines[i + 1].strip()
+                item_type = lines[i + 2].strip()
+                stats = []
+
+                if line_date_time < start_date_time:
+                    i += 1
+                    continue
+
+                if "rune" in item_name.lower():
+                    runes[item_name] += 1
+                    i += 3
+                    continue
+                if "key of" in item_name.lower():
+                    keys[item_name] += 1
+                    i += 3                  
+                    continue
+
+                if any(essence in item_name for essence in ["Twisted Essence of Suffering", "Charged Essence of Hatred", "Festering Essence of Destruction", "Burning Essence of Terror"]):
+                    i += 3
+                    continue
+
+                j = i + 3
+                while j < len(lines) and not re.match(r'\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}', lines[j]):
+                    stat = lines[j].strip()
+
+                    if not any(stat.startswith(exclude) for exclude in excluded_starts):
+                        stats.append(stat)
+
+                    j += 1
+##item name
+                if re.search(r'(small shield|large shield|kite shield|tower shield|bone shield|spiked shield|round shield|dragon shield|ancient shield|grim shield|barbed shield|scutum|buckler|defender|pavise|heater|luna|hyperion|monarch|aegis|ward|troll nest|blade barrier|round shield)', item_name, re.IGNORECASE):
+                    item_type = "Shields"
+                if re.search(r'(small shield|large shield|kite shield|tower shield|bone shield|spiked shield|round shield|dragon shield|ancient shield|grim shield|barbed shield|scutum|buckler|defender|pavise|heater|luna|hyperion|monarch|aegis|ward|troll nest|blade barrier|round shield)', item_type, re.IGNORECASE):
+                    item_type = "Shields"
+                elif re.search(r'(targe|rondache|heraldic shield|aerin shield|crown shield|protector shield|gilded shield|royal|shield|ancient shield|zakarum shield|vortex shield)', item_name, re.IGNORECASE):
+                    item_type = "Pally Shields"
+                if re.search(r'(bow)', item_name, re.IGNORECASE):
+                    item_type = "Bows"
+                elif re.search(r'(rainbow facet)', item_type, re.IGNORECASE):
+                    item_type = "Jewels"
+                if re.search(r'(rainbow facet)', item_type, re.IGNORECASE):
+                    item_type = "Jewels"
+                if re.search(r'(javelin|pilum|short spear|glavie|throwing spear|simbilan|spiculum|harpoon|balrog spear)', item_name, re.IGNORECASE):
+                    item_type = "Javelins"
+                if re.search(r'(javelin|pilum|short spear|glavie|throwing spear|simbilan|spiculum|harpoon|balrog spear)', item_type, re.IGNORECASE):
+                    item_type = "Javelins"
+                if re.search(r'(ring)', item_type, re.IGNORECASE):
+                    item_type = "Rings"
+                if re.search(r'(amulet)', item_type, re.IGNORECASE):
+                    item_type = "Amulets"
+                if re.search(r'(maiden spear|maiden pike|ceremonial spear|ceremonial pike|matriarchal spear|matriarchal pike|trident|brandistock|spetum|pike|fuscina|war fork|yari|lance|stygian pike|mancatcher|ghost spear|war pike)', item_name, re.IGNORECASE):
+                    item_type = "Spears"
+                if re.search(r'(axe|balanced axe|hatchet|cleaver|crowbill|naga|tabar|tomahawk|small crescent|decapitator|throwing axe|balanced axe|francisca|hurlbat|flying axe|winged axe)', item_name, re.IGNORECASE):
+                    item_type = "Axes"
+                if re.search(r'(axe|balanced axe|hatchet|cleaver|crowbill|naga|tabar|tomahawk|small crescent|decapitator|throwing axe|balanced axe|francisca|hurlbat|flying axe|winged axe)', item_type, re.IGNORECASE):
+                    item_type = "Axes"
+                if re.search(r'(sash|belt|coil|girdle)', item_name, re.IGNORECASE):
+                    item_type = "Belts"
+                if re.search(r'(boots|greaves)', item_name, re.IGNORECASE):
+                    item_type = "boots"
+                if re.search(r'(boots|greaves)', item_type, re.IGNORECASE):
+                    item_type = "boots"
+                if re.search(r'(circle|coronet|tiara|diadem)', item_name, re.IGNORECASE):
+                    item_type = "Circlets"
+                if re.search(r'(circle|coronet|tiara|diadem)', item_type, re.IGNORECASE):
+                    item_type = "Circlets"
+                if re.search(r'(club|cudgel)', item_name, re.IGNORECASE):
+                    item_type = "Clubs"
+                if re.search(r'(gloves|gauntlets|vambraces|mitts|bracers)', item_name, re.IGNORECASE):
+                    item_type = "Gloves"
+                if re.search(r'(gloves|gauntlets|vambraces|mitts|bracers)', item_type, re.IGNORECASE):
+                    item_type = "Gloves"
+                if re.search(r'(katar|wrist blade|hatchet hands|cestus|claws|blade talons|scissors katar|quhab|wrist spike|fascia|hand scythe|greater claws|greater talons|scissors quhab|suwayyah|wrist sword|war fist|battle cestus|feral claws|runic talons|scissors suwayyah)', item_name, re.IGNORECASE):
+                    item_type = "Assassin"
+                if re.search(r'(war hammer|maul|horadic malus|battle hammer|war club|martel de fer|legendary mallet)', item_name, re.IGNORECASE):
+                    item_type = "Mauls"
+                if re.search(r'(preserved head|zombie head|unraveller head|gargoyle head|demon head|mummified trophy|fetish trophy|sexton trophy|cantor trophy|heirophant trophy|minion skull|hellspawn skills|overseer skull|succubus skull|bloodlord skull)', item_name, re.IGNORECASE):
+                    item_type = "Necro off-hand"
+                if re.search(r'(cap|skull cap|helm|crown|mask|war hat|sallet|caque|basinet|winged helm|shako|hydraskull|armet|giant conch|corona|demonhead|bone visage)', item_name, re.IGNORECASE):
+                    item_type = "Helmets"
+                if re.search(r'(dagger|blade|dirk|kriss|decoy gidbinn|the gidbinn|poignard|rondel|cinquedeas|stilleto|bone knife|mithral point|fanged knife|legend spike|throwing knife|balanced knife|battle dart|war dart|flying knife|winged knife)', item_name, re.IGNORECASE):
+                    item_type = "Knives"
+                if re.search(r'(dagger|blade|dirk|kriss|decoy gidbinn|the gidbinn|poignard|rondel|cinquedeas|stilleto|bone knife|mithral point|fanged knife|legend spike|throwing knife|balanced knife|battle dart|war dart|flying knife|winged knife)', item_type, re.IGNORECASE):
+                    item_type = "Knives"
+                if re.search(r'(mace|morning star|flail|jagged star|knout|khalim|devil star|scourge)', item_name, re.IGNORECASE):
+                    item_type = "Maces"
+                if re.search(r'(orb|sacred globe|smoked sphere|jared\'s stone|crystalline globe|cloudy sphere|sparkling ball|swirling crystal|heavenly stone|eldritch orb|demon heart|vortex orb|dimensional shard)', item_name, re.IGNORECASE):
+                    item_type = "Sorc orbs"
+                if re.search(r'(antlers|wolf head|hawk helm|antlers|falcon mask|spirit mask|alpha helm|griffon headress|hunter\'s guise|sacred feathers|totemic mask|blood spirit|sun spirit|earth spirit|sky spirit|dream spirit)', item_name, re.IGNORECASE):
+                    item_type = "Druid helms"
+                if re.search(r'(antlers|wolf head|hawk helm|antlers|falcon mask|spirit mask|alpha helm|griffon headress|hunter\'s guise|sacred feathers|totemic mask|blood spirit|sun spirit|earth spirit|sky spirit|dream spirit)', item_type, re.IGNORECASE):
+                    item_type = "Druid helms"
+                if re.search(r'(jawbone cap|fanged cap|horned helm|assault helmet|avenger guard|jawbone visor|lion helm|rage mask|savage helmet|slayer guard|carnage helm|fury visor|destroyer helm|conqueror crown|guardian crown)', item_name, re.IGNORECASE):
+                    item_type = "Barb helms"
+                if re.search(r'(jawbone cap|fanged cap|horned helm|assault helmet|avenger guard|jawbone visor|lion helm|rage mask|savage helmet|slayer guard|carnage helm|fury visor|destroyer helm|conqueror crown|guardian crown)', item_type, re.IGNORECASE):
+                    item_type = "Barb helms"
+                if re.search(r'(bardiche|voulge|scythe|poleaxe|halbred|war scythe|lochaber axe|bill|battle sycthe|partizan|bec-de-corbin|grim scythe|orge axe|colossus voulge|thresher|cryptic axe|great poleaxe|giant thresher)', item_name, re.IGNORECASE):
+                    item_type = "Poles / Threshers"
+                if re.search(r'(scepter|seraph rod|caduceus|holy water sprinkler)', item_name, re.IGNORECASE):
+                    item_type = "Scepters"
+                if re.search(r'(short staff|long staff|gnarled staff|battle staff|war staff|horadic staff|staff of kings|jo staff|quarterstaff|cedar staff|gothic staff|rune staff|walking stick|stalagmite|elder staff|shillelagh|archon staff)', item_name, re.IGNORECASE):
+                    item_type = "Staffs"
+                if re.search(r'(short staff|long staff|gnarled staff|battle staff|war staff|horadic staff|staff of kings|jo staff|quarterstaff|cedar staff|gothic staff|rune staff|walking stick|stalagmite|elder staff|shillelagh|archon staff)', item_type, re.IGNORECASE):
+                    item_type = "Staffs"
+                if re.search(r'(short sword|scimitar|saber|falchion|crystal sword|broad sword|long sword|war sword|tow-handed sword|claymore|giant sword|bastard sword|flamberge|great sword|gladius|cutlass|shamshir|tulwar|dimensional blade|battle sword|rune sword|ancient sword|espandon|daciaan falx|tusk sword|gothic sword|zweihander|executioner sword|falcata|ataghan|elegant blade|hydra edge|phase blade|conquest sword|cryptic sword|mythical sword|legend sword|highland blade|balrog blade|champion sword|colossal sword|colossus blade)', item_name, re.IGNORECASE):
+                    item_type = "Swords"
+                if re.search(r'(short sword|scimitar|saber|falchion|crystal sword|broad sword|long sword|war sword|tow-handed sword|claymore|giant sword|bastard sword|flamberge|great sword|gladius|cutlass|shamshir|tulwar|dimensional blade|battle sword|rune sword|ancient sword|espandon|daciaan falx|tusk sword|gothic sword|zweihander|executioner sword|falcata|ataghan|elegant blade|hydra edge|phase blade|conquest sword|cryptic sword|mythical sword|legend sword|highland blade|balrog blade|champion sword|colossal sword|colossus blade)', item_type, re.IGNORECASE):
+                    item_type = "Swords"
+                if re.search(r'(quilted armor|leather armor|chaos armor|hard leather armor|studded leather|ring mail|scale mail|chain mail|breast plate|splint mail|plate mail|field plate|gothic plate|full plate mail|ancient armor|light plate|ghost armor|sepenskin armor|demonhide armor|trellised armor|linked mail|tigulated mail|mesh armor|cuirass|russet armor|templar coat|sharktooth armor|embossed plate|choas armor|ornate armor|mage plate|dusk shroud|wyrmhide|scarab husk|wire fleece|diamond mail|loricated mail|boneweave|great hauberk|balrog skin|hellforge plate|kraken shell|lacquered plate|shadow plate|sacred armor|archon plate)', item_name, re.IGNORECASE):
+                    item_type = "Armors"
+                if re.search(r'(wand)', item_name, re.IGNORECASE):
+                    item_type = "Wands"
+                if re.search(r'(crossbow|arbalest|ballista|chu-ko-nu|pellet bow)', item_name, re.IGNORECASE):
+                    item_type = "Cross bows"
+
+## uniques
+                if re.search(r'(blinkbat\'s form|boneflesh|darkglow|goldskin|greyform|hawkmail|heavenly garb|iceblink|rattlecage|rockfleece|silks of the victor|sparking mail|the centurion|twitchthroe|venom ward|atma\'s wail|black hades|corpsemourn|crow caw|duriel\'s shell|guardian angel|iron pelt|que-hegan\'s wisdom|shaftstop|skin of the flayed one|skin of the vipermagi|skullder\'s ire|spirit forge|the spirit shroud|toothrow|arkaine\'s valor|leviathan|ormus\' robe|steel carapace|templar\'s might|the gladiator\'s bane|tyrael\'s might)', item_name, re.IGNORECASE):
+                    item_type = "Unique Chest"
+                if re.search(r'(bladebuckle|goldwrap|lenymo|nightsmoke|snakecord|gloom\'s trap|razortail|snowclash|string of ears|thundergod\'s vigor|arachnid mesh|nosferatu\'s coil|verdungo\'s hearty cord)', item_name, re.IGNORECASE):
+                    item_type = "Unique Belts"
+                if re.search(r'(goblin toe|gorefoot|hotsput|tearhaunch|treads of cthon|gore rider|infernostride|silkweave|war traveler|waterwalk|marrowwalk|sandstorm trek|shadow dancer)', item_name, re.IGNORECASE):
+                    item_type = "Boots"
+                if re.search(r'(Kira\'s guardian|griffon\'s eye)', item_name, re.IGNORECASE):
+                    item_type = "Unique Helms"
+                if re.search(r'(bloodfist|chance guards|frostburn|magefist|the hand of broc|ghouldhide|gravepalm|hellmouth|lava gout|venom grip|dracul\'s grasp|soul drainer|steelrend)', item_name, re.IGNORECASE):
+                    item_type = "Gloves"
+                if re.search(r'(tal rasha\'s)', item_name, re.IGNORECASE):
+                    item_type = "Tal set"
+                if re.search(r'(biggin\'s bonnet|coif of glory|duskdeep|howltusk|tarnhelm|the face of horror|undead crown|wormskull|blackhorn\'s face|crown of thieves|darksight helm|peasant crown|rockstopper|stealskull|valkyrie wing|vampire gaze|andariel\'s visage|crown of ages|giant skull|harlequin crest|nightwing\'s veil|steel shade|veil of steel)', item_name, re.IGNORECASE):
+                    item_type = "Unique Helms"
+                if re.search(r'(blastbark|hellclap|pluckeye|raven claw|rouge\'s bow|stormstrike|witherstring|wizendraw|cliffkiller|endlesshail|goldstrike arch|kuko shakaku|magewrath|riphook|skystrike|witchwild string|eaglehorn|widowmaker|windforce)', item_name, re.IGNORECASE):
+                    item_type = "Unique Bows"
+                if re.search(r'(bladebone|deathspade|rakescar|skull splitter|the gnasher|butcher\'s pupil|coldkill|guardian naga|islestrike|pompeii\'s wrath|cranebeak|death cleaver|razor\'s edge|rune master|Aze of fechmar|brainhew|goreshovel|humongous|the chieftain|boneslayer blade|spellsteel|stromrider|the minotaur|warlord\'s trust|ethereal edge|executioner\'s justice|hellslaryer|messerschmidt\'s reaver)', item_name, re.IGNORECASE):
+                    item_type = "Unique axes"
+                if re.search(r'(aldur\'s|angelic wings|angelic mantle|angelic halo|angelic sickle|arcanna\'s|Arctic furs|artic binding|artic horn|artic mitts| berserker\'s|bul-katho\'s|cathan\'s|civerb\'s|cleglaw\'s|cow king\'s|death\'s|griswold\'s|haemosu\'s|dangoon\'s|ondal\'s|taebaek\'s|hsarus\'|hwanin\'s|immortal king\'s|infernal sign|infernal cranium|infernal torch|iratha\'s|isenhart\'s|m\'avina\'s|milabrega\'s|naj\'s|natalya\'s|wilhelm\'s|magnus\'|guillaume\'s|whitstan\'s|sander\'s|sazabi\'s|sigon\'s|tancred\'s|telling of beads|dark adherenet|credendum|rite of passage|laying of hands|trang-oul\'s|vidala\'s)', item_name, re.IGNORECASE):
+                    item_type = "Set items"
+
+##charms                
+                if "grand charm" in item_name.lower():
+                    item_type = "Grand Charm"
+                if "small charm" in item_name.lower():
+                    item_type = "Small Charm"
+                if "large charm" in item_name.lower():
+                    item_type = "Large Charm"
+                item = {"name": f"{item_name} - FG:", "type": item_type, "stats": stats}
+                items[item_type].append(item)
+                    
+                i = j
+            else:
+                i += 1
+                
+    return items, runes, keys
+
+
+def output_formatted(items, runes, keys):
+    formatted_items = []
+    for item_type, item_list in items.items():
+        formatted_items.append(f"=={item_type}==")
+        for item in item_list:
+            if item_type == "Shields":
+                formatted_items.append("    " + item["name"].replace(" - FG:", ""))
+            else:
+                formatted_items.append("    " + item["name"])
+            for stat in item["stats"]:
+                formatted_items.append("        " + stat)
+    formatted_runes = [f"{key}: {value}" for key, value in runes.items()]
+    formatted_keys = [f"{key}: {value}" for key, value in keys.items()]
+    formatted_list = formatted_items + ["\nRunes:"] + formatted_runes + ["\nKeys:"] + formatted_keys
+    return "\n".join(formatted_list)
+
+
+def format_output(items, runes, keys):
+    formatted_items = []
+    for item_type, item_list in items.items():
+        formatted_items.append(f"=={item_type}==")
+        for item in item_list:
+            formatted_items.append("    " + item["name"])
+            for stat in item["stats"]:
+                formatted_items.append("        " + stat)
+    formatted_runes = [f"{key}: {value}" for key, value in runes.items()]
+    formatted_keys = [f"{key}: {value}" for key, value in keys.items()]
+    formatted_list = formatted_items + ["\nRunes:"] + formatted_runes + ["\nKeys:"] + formatted_keys
+    return "\n".join(formatted_list)
+
+# Functions for the GUI
+def browse_file(file_path_entry, date_combobox, output_text):
+    file_path = filedialog.askopenfilename()
+    file_path_entry.delete(0, tk.END)
+    file_path_entry.insert(0, file_path)
+    
+    file_path = file_path_entry.get()
+    if not file_path:
+        messagebox.showerror("Error", "No file selected")
+        return
+    
+    start_date_time = date_combobox.get()
+    start_date_time = datetime.strptime(start_date_time, format)
+
+    try:
+        items, runes, keys = analyze_file(file_path, start_date_time)
+        formatted_items = []
+        for item_type, item_list in items.items():
+            formatted_items.append(f"[B]{item_type}:[\B]")
+            for item in item_list:
+                formatted_items.append("    " + item["name"])
+                for stat in item["stats"]:
+                    formatted_items.append("        " + stat)
+        formatted_runes = [f"{key}: {value}" for key, value in runes.items()]
+        formatted_keys = [f"{key}: {value}" for key, value in keys.items()]
+        formatted_list = formatted_items + ["\nRunes:"] + formatted_runes + ["\nKeys:"] + formatted_keys
+        output_text.delete("1.0", tk.END)
+        output_text.insert("1.0", "\n".join(formatted_list))
+    except Exception as e:
+        messagebox.showerror("Error", str(e))
+        return
+    pass
+
+def run_script(entry, date_combobox, output_text):
+    file_path = entry.get()
+    if not file_path:
+        messagebox.showerror("Error", "No file selected")
+        return
+
+    start_date_time = date_combobox.get().strip()
+    start_date_time = datetime.strptime(start_date_time, "%d-%m-%Y %H:%M:%S")
+
+    try:
+        items, runes, keys = analyze_file(file_path, start_date_time)
+        formatted_output = output_formatted(items, runes)
+        output_text.delete("1.0", tk.END)
+        output_text.insert("1.0", formatted_output)
+    except Exception as e:
+        messagebox.showerror("Error", str(e))
+
+
+
+
+def save_output(output_text):
+    output = output_text.get("1.0", tk.END)
+    if not output.strip():
+        messagebox.showerror("Error", "No output to save")
+        return
+
+    save_path = filedialog.asksaveasfilename(title="Save output file", defaultextension=".txt", filetypes=[("Text File", "*.txt")])
+    if save_path:
+        with open(save_path, "w", encoding="utf-8") as f:
+            f.write(output)
+
+
+def create_license_validation_window(main_app, main_frame, notebook, encrypted_keys, decryption_key, output_text):
+    license_window = tk.Toplevel(main_app)
+    license_window.title("License Validation")
+    license_window.geometry("300x150")
+
+    ttk.Label(license_window, text="Enter your license key:").grid(row=0, column=0, padx=10, pady=10, sticky="w")
+    license_entry = ttk.Entry(license_window)
+    license_entry.grid(row=1, column=0, padx=10, pady=10, sticky="w")
+    ttk.Button(license_window, text="Validate", command=lambda: validate_license_key(license_entry, main_frame, license_window, encrypted_keys, decryption_key, output_text)).grid(row=2, column=0, padx=10, pady=10, sticky="w")
+
+    sv_ttk.set_theme('dark')
+    license_window.mainloop()
+
+
+def create_main_app_window():
+    main_app = tk.Tk()
+    main_app.title("Bozzys Analyzer")
+    main_app.geometry("800x600")
+
+    notebook = ttk.Notebook(main_app)
+    notebook.pack(fill="both", expand=True)
+
+    license_frame = ttk.Frame(notebook)
+    main_frame = ttk.Frame(notebook)
+
+
+    notebook.add(license_frame, text="License Validation")
+    notebook.add(main_frame, text="Main")
+
+    # License validation widgets
+    ttk.Label(license_frame, text="Enter your license key:").grid(row=0, column=0, padx=10, pady=10, sticky="w")
+    license_entry = ttk.Entry(license_frame)
+    license_entry.grid(row=1, column=0, padx=10, pady=10, sticky="w")
+    ttk.Button(license_frame, text="Validate", command=lambda: validate_license_key(license_entry, main_app, encrypted_keys, decryption_key, output_text)).grid(row=2, column=0, padx=10, pady=10, sticky="w")
+
+    # Main application widgets
+    left_frame = ttk.Frame(main_frame)
+    left_frame.pack(side="left", fill="y", padx=(10, 0), pady=10)
+
+    right_frame = ttk.Frame(main_frame)
+    right_frame.pack(side="right", fill="both", expand=True, padx=(0, 10), pady=10)
+
+    output_text = tk.Text(right_frame, wrap=tk.WORD)
+    output_text.pack(expand=True, fill=tk.BOTH, side="left")   
+
+    #output_frame = ttk.Frame(right_frame)
+    #output_frame.pack(fill="both", expand=True)
+
+    scrollbar = ttk.Scrollbar(right_frame, orient="vertical", command=output_text.yview)
+    scrollbar.pack(side="right", fill="y")
+    output_text.config(yscrollcommand=scrollbar.set)
+
+    file_path_entry = ttk.Entry(left_frame)
+    file_path_entry.pack(pady=(0, 10))
+
+    ttk.Label(left_frame, text="Select Date & Time:").pack(pady=10)
+    date_combobox = ttk.Combobox(left_frame, state="normal")
+    date_combobox.pack(pady=10)
+    date_combobox.set("dd-mm-yyyy hh:mm:ss")
+
+
+    browse_button = ctk.CTkButton(left_frame, text="Find Looted.log", command=lambda: browse_file(file_path_entry, date_combobox, output_text))
+    browse_button.pack(pady=(0, 10))
+
+    run_button = ctk.CTkButton(left_frame, text="Run Script", command=lambda: run_script(file_path_entry, date_combobox, output_text))
+    run_button.pack(pady=10)
+
+    save_button = ctk.CTkButton(left_frame, text="Save Output", command=lambda: save_output(output_text))
+    save_button.pack(pady=10)
+
+
+
+
+    main_app.withdraw()
+    return main_app, main_frame, notebook, output_text
+
+if __name__ == "__main__":
+    main_app, main_frame, notebook, output_text = create_main_app_window()
+    create_license_validation_window(main_app, main_frame, notebook, output_text)
+    main_app.mainloop()
