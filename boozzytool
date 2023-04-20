@@ -4,9 +4,6 @@ from tkinter import filedialog, messagebox, Scrollbar
 from ttkthemes import ThemedTk
 from collections import defaultdict
 import customtkinter as ctk
-from keyauth import api
-#from keyauth import api
-import base64
 import re
 import base64
 import json
@@ -17,41 +14,6 @@ import csv
 format = '%d-%m-%Y %H:%M:%S'
 
 
-import hashlib
-
-def getchecksum():
-    with open(__file__, 'rb') as f:
-        md5 = hashlib.md5()
-        while True:
-            data = f.read(8192)
-            if not data:
-                break
-            md5.update(data)
-    return md5.hexdigest()
-
-
-
-# Initialize KeyAuth instance
-keyauthapp = api(
-    name = "BozzyTool",
-    ownerid = "p40l2PVTY8",
-    secret = "f9d3a3fe13390f471ae200b2890785d2b4285458e29f90996cc12bd904e2dd5e",
-    version = "1.0",
-    hash_to_check = getchecksum()
-)
-
-def validate_license_key(license_entry, main_frame, license_window, output_text):
-    entered_key = license_entry.get().lower()
-
-    if keyauthapp.license(entered_key):  # Using KeyAuth for license validation
-        messagebox.showinfo("Success", "License key validated")
-        license_window.destroy()
-        main_app.deiconify()
-        notebook.select(main_frame)  # Switch to the main_frame
-    else:
-        messagebox.showerror("Error", "Invalid license key")
-
-# ...
 def analyze_file(file_path, start_date_time):
     items = defaultdict(list)
     runes = defaultdict(int)
@@ -315,6 +277,27 @@ def save_output(output_text):
         with open(save_path, "w", encoding="utf-8") as f:
             f.write(output)
 
+def xor_cipher(text, key):
+    return ''.join(chr(ord(c) ^ key) for c in text)
+
+def validate_license_key(license_entry, main_frame, license_window, encrypted_keys, decryption_key, output_text):
+    entered_key = license_entry.get().lower()
+    decoded_entered_key = base64.b64encode(xor_cipher(entered_key, decryption_key).encode()).decode()
+
+    # Debug print statements
+    print("Entered Key:", entered_key)
+    print("Decoded Entered Key:", decoded_entered_key)
+    print("Encrypted Keys:", encrypted_keys)
+
+    if decoded_entered_key in encrypted_keys:
+        messagebox.showinfo("Success", "License key validated")
+        license_window.destroy()
+        main_app.deiconify()
+        notebook.select(main_frame)  # Switch to the main_frame
+    else:
+        messagebox.showerror("Error", "Invalid license key")
+
+
 
 def create_license_validation_window(main_app, main_frame, notebook, encrypted_keys, decryption_key, output_text):
     license_window = tk.Toplevel(main_app)
@@ -393,6 +376,10 @@ def create_main_app_window():
     return main_app, main_frame, notebook, output_text
 
 if __name__ == "__main__":
+    decryption_key = 10  # Choose a number as the decryption key
+    LICENSE_KEYS = ['bozknight', 'ruthless', 'ad35fb19-4412-4efb-a2b4-df06d26c4f36', 'bd4d4b02-9c24-4f19-88c6-c07d1c8cfc15', 'f16a8361-3d3f-47f2-8a7e-6f3bc6f8c6d5', '7f6935c5-6db9-49f5-b13f-9910c0c73db8', 'c50e51b2-2e04-47aa-bc77-6d84ee1a56f6', '3a2d03c7-12a6-48d7-a9ec-9f1bf5ab6c71', 'dbb0d802-8a7b-43f2-b1f8-2019df9b444f', 'cc0f18a8-1c09-45f3-b426-569ebf1578a9', '74d742e2-71dc-4b8f-85eb-1a1d57f506c8', '8a9a3589-97a7-44cb-8da8-95494e66b51c', 'c3af6008-9d20-4759-a91c-e055c6b7648c', 'ed988e88-8762-4b90-8f9f-6b731ef3ed5c', 'a48cbeda-6a44-4de4-b080-56f7f9d1d73a', 'afad88aa-8d4c-4d4e-8f8c-1c62f97e0a2d', '054e998a-cbd1-4551-9270-b52d8f1883c3', 'e93e9d27-1018-47e2-b00e-518bf4248641', '39aa7f2a-9b14-4f43-8ed8-eb3c6df5d15f', '882b8a43-f222-4d1b-9e9b-2158ad25120f', 'd4d4eb2b-8b96-4de9-a1d9-fd0f77f0c7ab', '4a091c0f-8b96-4b2f-a465-0d7e906b6a5f', '5f6d5d6a-62b8']
+    encrypted_keys = [base64.b64encode(xor_cipher(key, decryption_key).encode()).decode() for key in LICENSE_KEYS]
+
     main_app, main_frame, notebook, output_text = create_main_app_window()
-    create_license_validation_window(main_app, main_frame, notebook, output_text)
+    create_license_validation_window(main_app, main_frame, notebook, encrypted_keys, decryption_key, output_text)
     main_app.mainloop()
