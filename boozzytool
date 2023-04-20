@@ -4,7 +4,7 @@ from tkinter import filedialog, messagebox, Scrollbar
 from ttkthemes import ThemedTk
 from collections import defaultdict
 import customtkinter as ctk
-import keyauth
+import keyauth as api
 import base64
 import re
 import base64
@@ -31,12 +31,12 @@ def getchecksum():
 
 
 # Initialize KeyAuth instance
-keyauthapp.app(
-    name="BozzyTool",
-    ownerid="p40l2PVTY8",
-    secret="f9d3a3fe13390f471ae200b2890785d2b4285458e29f90996cc12bd904e2dd5e",
-    version="1.0",
-    hash_to_check=getchecksum()
+keyauthapp = api(
+    name = "BozzyTool",
+    ownerid = "p40l2PVTY8",
+    secret = "f9d3a3fe13390f471ae200b2890785d2b4285458e29f90996cc12bd904e2dd5e",
+    version = "1.0",
+    hash_to_check = getchecksum()
 )
 
 def validate_license_key(license_entry, main_frame, license_window, output_text):
