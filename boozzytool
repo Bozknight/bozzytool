@@ -43,8 +43,6 @@ keyauthapp = api(
     hash_to_check = getchecksum()
 )
 
-
-#3AL53N-MIRUGQ-8Y4UGM
 def validate_license_key(license_entry, main_frame, license_window, output_text):
     login = license_entry.get()
 
@@ -114,17 +112,15 @@ def analyze_file(file_path, start_date_time):
                     item_type = "Shields"
                 if re.search(r'(small shield|large shield|kite shield|tower shield|bone shield|spiked shield|round shield|dragon shield|ancient shield|grim shield|barbed shield|scutum|buckler|defender|pavise|heater|luna|hyperion|monarch|aegis|ward|troll nest|blade barrier|round shield)', item_type, re.IGNORECASE):
                     item_type = "Shields"
-                elif re.search(r'(targe|rondache|heraldic shield|aerin shield|crown shield|protector shield|gilded shield|royal|shield|ancient shield|zakarum shield|vortex shield)', item_name, re.IGNORECASE):
+                if re.search(r'(targe|rondache|heraldic shield|aerin shield|crown shield|protector shield|gilded shield|royal|shield|ancient shield|zakarum shield|vortex shield)', item_name, re.IGNORECASE):
                     item_type = "Pally Shields"
-                if re.search(r'(bow)', item_name, re.IGNORECASE):
+                elif re.search(r'(bow)', item_name, re.IGNORECASE):
                     item_type = "Bows"
                 elif re.search(r'(rainbow facet)', item_type, re.IGNORECASE):
                     item_type = "Jewels"
-                if re.search(r'(rainbow facet)', item_type, re.IGNORECASE):
-                    item_type = "Jewels"
-                if re.search(r'(javelin|pilum|short spear|glavie|throwing spear|simbilan|spiculum|harpoon|balrog spear)', item_name, re.IGNORECASE):
+                elif re.search(r'(javelin|pilum|short spear|glavie|throwing spear|simbilan|spiculum|harpoon|balrog spear)', item_name, re.IGNORECASE):
                     item_type = "Javelins"
-                if re.search(r'(javelin|pilum|short spear|glavie|throwing spear|simbilan|spiculum|harpoon|balrog spear)', item_type, re.IGNORECASE):
+                elif re.search(r'(javelin|pilum|short spear|glavie|throwing spear|simbilan|spiculum|harpoon|balrog spear)', item_type, re.IGNORECASE):
                     item_type = "Javelins"
                 if re.search(r'(ring)', item_type, re.IGNORECASE):
                     item_type = "Rings"
@@ -208,7 +204,7 @@ def analyze_file(file_path, start_date_time):
                     item_type = "Gloves"
                 if re.search(r'(tal rasha\'s)', item_name, re.IGNORECASE):
                     item_type = "Tal set"
-                if re.search(r'(biggin\'s bonnet|coif of glory|duskdeep|howltusk|tarnhelm|the face of horror|undead crown|wormskull|blackhorn\'s face|crown of thieves|darksight helm|peasant crown|rockstopper|stealskull|valkyrie wing|vampire gaze|andariel\'s visage|crown of ages|giant skull|harlequin crest|nightwing\'s veil|steel shade|veil of steel)', item_name, re.IGNORECASE):
+                if re.search(r'(biggin\'s bonnet|coif of glory|duskdeep|howltusk|tarnhelm|the face of horror|undead crown|wormskull|blackhorn\'s face|crown of thieves|darksight helm|peasant crown|rockstopper|stealskull|valkyrie wing|vampire gaze|andariel\'s visage|crown of ages|giant skull|harlequin crest|nightwing\'s veil|steel shade|veil of steel|arreat\'s face|jalal\'s mane|cereus\' bite|demonhorn\'s edge|halaberd\'s reign|ravenlore|spirit keeper|wolfhowl)', item_name, re.IGNORECASE):
                     item_type = "Unique Helms"
                 if re.search(r'(blastbark|hellclap|pluckeye|raven claw|rouge\'s bow|stormstrike|witherstring|wizendraw|cliffkiller|endlesshail|goldstrike arch|kuko shakaku|magewrath|riphook|skystrike|witchwild string|eaglehorn|widowmaker|windforce)', item_name, re.IGNORECASE):
                     item_type = "Unique Bows"
@@ -216,6 +212,22 @@ def analyze_file(file_path, start_date_time):
                     item_type = "Unique axes"
                 if re.search(r'(aldur\'s|angelic wings|angelic mantle|angelic halo|angelic sickle|arcanna\'s|Arctic furs|artic binding|artic horn|artic mitts| berserker\'s|bul-katho\'s|cathan\'s|civerb\'s|cleglaw\'s|cow king\'s|death\'s|griswold\'s|haemosu\'s|dangoon\'s|ondal\'s|taebaek\'s|hsarus\'|hwanin\'s|immortal king\'s|infernal sign|infernal cranium|infernal torch|iratha\'s|isenhart\'s|m\'avina\'s|milabrega\'s|naj\'s|natalya\'s|wilhelm\'s|magnus\'|guillaume\'s|whitstan\'s|sander\'s|sazabi\'s|sigon\'s|tancred\'s|telling of beads|dark adherenet|credendum|rite of passage|laying of hands|trang-oul\'s|vidala\'s)', item_name, re.IGNORECASE):
                     item_type = "Set items"
+                if re.search(r'(atma\'s scarab|crescent moon|highlord\'s wrath|mara\'s kaleidoscope|metalgrid|nokozan relic|saracen\'s chance|seraph\'s hymn|the cat\'s eye|the eye of etlich|the mahim-oak curio|the rising sun)', item_name, re.IGNORECASE):
+                    item_type = "Unique Ammy"
+                if re.search(r'(bul-katho\'s wedding band|carrion wind|dwarf star|manald heal|nagelring|nature\'s peace|raven frost|stone of jordan|wisp projector)', item_name, re.IGNORECASE):
+                    item_type = "Unique rings"
+                if re.search(r'(bverrit keep|pelta lunata|steelclash|stormguild|swordback hold|the ward|umbral disk|wall of the eyeless|gerke\'s sanctuary|lance guard|lidless wall|moser\'s blessed circle|radament\'s spheree|stormchaser|tiamat\'s rebuke|visceratuant|blackoak shield|head hunter\'s glory|medusa\'s gaze|spike thorn|spirit ward|stormshield|herald of zakarum|homunculus|alma negra|boneflame|darkforce spawn|dragonscale)', item_name, re.IGNORECASE):
+                    item_type = "Unique Shields"
+                if re.search(r'(lycander\'s aim|blood raven\'s charge|doomslinger|hellcast|ichorsting|leadcrow|buriza-do kyanon|demon machine|langer briser|pus spitter|gut siphon|hellrack)', item_name, re.IGNORECASE):
+                    item_type = "Unique Bows and Crossbows"
+                if re.search(r'(Bloodrise|Crushflange|Felloak|Ironstone|Stoutnail|The General\'s Tan Do Li Ga|Baezil\'s Vortex|Dark Clan Crusher|Earthshaker|Fleshrender|Moonfall|Sureshrill Frost|Baranar\'s Star|Demon Limb|Horizon\'s Tornado|Nord\'s Tenderizer|Schaefer\'s Hammer|Stone Crusher|Stormlash|Bonesnap|Steeldriver|Bloodtree Stump|The Gavel of Pain|Earth Shifter|The Cranium Basher|Windhammer|Knell Striker|Rusthandle|Stormeye|Hand of Blessed Light|The Fetid Sprinkler|Zakarum\'s Hand|Astreon\'s Iron Ward|Heaven\'s Light|The Redeemer)', item_name, re.IGNORECASE):
+                    item_type = "Clubs and Scepters"
+                if re.search(r'(Arioc\'s Needle|Athena\'s Wrath|Azurewrath|Bane Ash|Bartuc\'s Cut-Throat|Bing Sz Wang|Blackbog\'s Sharp|Blackleach Blade|Blacktongue|Blade of Ali Baba|Blood Crescent|Bloodletter|Bloodmoon|Bloodthief|Bonehew|Chromatic Ire|Cloudcrack|Coldsteel Eye|Crainte Vomir|Culwen\'s Point|Deathbit|Demon\'s Arch|Dimoak\'s Hew|Djinn Slayer|Doombringer|Firelizard\'s Talons|Flamebellow|Fleshripper|Frostwind|Gargoyle\'s Bite|Ghostflame|Gimmershred|Ginther\'s Rift|Gleamscythe|Grim\'s Burning Dead|Griswold\'s Edge|Gull|Headstriker|Heart Carver|Hellplague|Hexfire|Hone Sundan|Husoldal Evo|Jade Talon|Kelpie Snare|Kinemil\'s Awl|Lacerator|Lance of Yaggai|Lightsabre|Lycander\'s Flank|Mang Song\'s Lesson|Ondal\'s Wisdom|Pierre Tombale Couant|Plague Bearer|Razorswitch|Razortine|Ribcracker|Ripsaw|Rixot\'s Keen|Serpent Lord|Shadow Killer|Shadowfang|Skewer of Krintiz|Skull Collector|Soul Harvest|Soulfeast Tine|Soulflay|Spectral Shard|Spineripper|Spire of Honor|Spire of Lazarus|Steel Pillar|Steelgoad|Stoneraven|Stormspike|Stormspire|Swordguard|The Atlantean|The Battlebranch|The Diggler|The Dragon Chang|The Grandfather|The Grim Reaper|The Impaler|The Iron Jang Bong|The Jade Tan Do|The Meat Scraper|The Patriarch|The Reaper\'s Toll|The Salamander|The Scalper|The Tannr Gorerod|The Vile Husk|Thunderstroke|Titan\'s Revenge|Todesfaelle Flamme|Tomb Reaver|Viperfork|Warpspear|Warshrike|Wizardspike|Woestave|Wraith Flight)', item_name, re.IGNORECASE):
+                    item_type = "Unique Weapons"
+                if re.search(r'(the oculus|death\'s fathom|eschuta\'s temper)', item_name, re.IGNORECASE):
+                    item_type = "Unique Sorc Orbs"
+                if re.search(r'(gravenspin|maelstorm|torch of iro|ume\'s lament|arm of king leoric|blackhand key|carin shard|suicide branch|boneshade|death\'s web)', item_name, re.IGNORECASE):
+                    item_type = "Unique Wands"
 
 ##charms                
                 if "grand charm" in item_name.lower():
@@ -226,43 +238,25 @@ def analyze_file(file_path, start_date_time):
                     item_type = "Large Charm"
                 item = {"name": f"{item_name} - FG:", "type": item_type, "stats": stats}
                 items[item_type].append(item)
-                    
+
+                
+                item_list = items[item_type]
+                insert_index = 0
+                for existing_item in item_list:
+                    if (item_type.lower().startswith("unique") and existing_item["type"].lower().startswith("unique")) or item["name"].lower() > existing_item["name"].lower():
+                        break
+                    insert_index += 1
+
+                item_list.insert(insert_index, item)
+
                 i = j
             else:
                 i += 1
                 
+                
     return items, runes, keys
 
 
-def output_formatted(items, runes, keys):
-    formatted_items = []
-    for item_type, item_list in items.items():
-        formatted_items.append(f"=={item_type}==")
-        for item in item_list:
-            if item_type == "Shields":
-                formatted_items.append("    " + item["name"].replace(" - FG:", ""))
-            else:
-                formatted_items.append("    " + item["name"])
-            for stat in item["stats"]:
-                formatted_items.append("        " + stat)
-    formatted_runes = [f"{key}: {value}" for key, value in runes.items()]
-    formatted_keys = [f"{key}: {value}" for key, value in keys.items()]
-    formatted_list = formatted_items + ["\nRunes:"] + formatted_runes + ["\nKeys:"] + formatted_keys
-    return "\n".join(formatted_list)
-
-
-def format_output(items, runes, keys):
-    formatted_items = []
-    for item_type, item_list in items.items():
-        formatted_items.append(f"=={item_type}==")
-        for item in item_list:
-            formatted_items.append("    " + item["name"])
-            for stat in item["stats"]:
-                formatted_items.append("        " + stat)
-    formatted_runes = [f"{key}: {value}" for key, value in runes.items()]
-    formatted_keys = [f"{key}: {value}" for key, value in keys.items()]
-    formatted_list = formatted_items + ["\nRunes:"] + formatted_runes + ["\nKeys:"] + formatted_keys
-    return "\n".join(formatted_list)
 
 # Functions for the GUI
 def browse_file(file_path_entry, date_combobox, output_text):
@@ -338,10 +332,6 @@ def save_output(output_text):
         with open(save_path, "w", encoding="utf-8") as f:
             f.write(output)
 
-import tkinter as tk
-from tkinter import ttk
-import sv_ttk
-
 def create_license_validation_window(main_app, main_frame, notebook, output_text):
     license_window = tk.Toplevel(main_app)
     license_window.title("License Validation")
@@ -396,9 +386,6 @@ def create_main_app_window():
 
     output_text = tk.Text(right_frame, wrap=tk.WORD)
     output_text.pack(expand=True, fill=tk.BOTH, side="left")   
-
-    #output_frame = ttk.Frame(right_frame)
-    #output_frame.pack(fill="both", expand=True)
 
     scrollbar = ttk.Scrollbar(right_frame, orient="vertical", command=output_text.yview)
     scrollbar.pack(side="right", fill="y")
