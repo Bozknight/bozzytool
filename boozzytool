@@ -1,40 +1,27 @@
 import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog, messagebox, Scrollbar
-from ttkthemes import ThemedTk
-import json as jsond
 from collections import defaultdict
-import customtkinter as ctk
-from keyauth import api
-#from keyauth import api
+#import customtkinter as ctk
+from keyauth import api, getchecksum
 import base64
 import re
 import base64
-import json
-import sv_ttk
+#import sv_ttk
 from datetime import datetime, timedelta
 import csv
+import hashlib
 
 format = '%d-%m-%Y %H:%M:%S'
 
-
-import hashlib
-
-def getchecksum():
-    with open(__file__, 'rb') as f:
-        md5 = hashlib.md5()
-        while True:
-            data = f.read(8192)
-            if not data:
-                break
-            md5.update(data)
-    return md5.hexdigest()
+def main():
+    result = getchecksum()
+    print(result)
 
 
 
 
 
-# Initialize KeyAuth instance
 keyauthapp = api(
     name = "BozzyTool",
     ownerid = "p40l2PVTY8",
@@ -45,29 +32,62 @@ keyauthapp = api(
 
 def validate_license_key(license_entry, main_frame, license_window, output_text):
     login = license_entry.get()
-
+    json_data = keyauthapp.license(login)  # Call the license method
+    print(json_data)
+    
     try:
-        keyauthapp.license(login)  # Using KeyAuth for license validation
+        keyauthapp.license(login) 
         success = True
     except Exception as e:
-        print("KeyAuth error:", e)  # Print the error for debugging
+        print("KeyAuth error:", e)  
         success = False
 
-    if success:  # Check if the authentication was successful
+    if json_data["success"]:  
         messagebox.showinfo("Success", "License key validated")
         license_window.destroy()
         main_app.deiconify()
-        notebook.select(main_frame)  # Switch to the main_frame
+        notebook.select(main_frame)
+        print("me", login)
     else:
         messagebox.showerror("Error", "Invalid license key")
-
+    
 
 
 def analyze_file(file_path, start_date_time):
     items = defaultdict(list)
     runes = defaultdict(int)
     keys = defaultdict(int)
-    excluded_starts = ["Defense:","Durability", "Required Strength", "Required Dexterity", "Required Level", "Quantity", "Unidentified", "Can be Inserted into Socketed Items", "Keep in Inventory to Gain Bonus"]
+
+
+    excluded_starts = ["Durability", "Required Strength",
+                       "Required Dexterity", "Required Level",
+                       "Quantity", "Unidentified", "Can be Inserted into Socketed Items",
+                       "Keep in Inventory to Gain Bonus", "to Stength", "to Energy", "to mana", "Magic Damage",
+                       "(Barbarian Only)", "(Sorceress Only)", "(Amazon Only)", "(Druid Only)", "(Necromancer Only)",
+                       "(Paladin Only)", "(Assassin Only)", "Half Freeze Duration", "Relplenish Life", "Staff Class",
+                       "Sword Class", "Javelin Class", "Axe Class", "Polearm Class", "Dagger Class", "Bow Class",
+                       "Crossbow Class", "Regenerate Mana", "Throw Damage:", "One-Hand Damage:", "Two-Hand Damage:",
+                       "Damage Reduced", "Poison Resist", "Replenish Life", "Level", "Attacker Takes Damage",
+                       "Poison Length Reduced", "Mace Class", "Belt Size", "Slows Target", "Slower Stamina Drain", "Heal Stamina", "Enemy Light"]
+    sunders = ["cold rupture", "crack of the heavens", "flame rift", "rotting fissure", "the bone break", "the black cleft"]
+
+    additional_exclusions = {
+        "Harlequin Crest": ["+2 All Skills", "+2 to all Attributes", "Damaged Reduced", "50% Better", "Damage Reduced"],
+        "Andariel\'s Visage": ["+2 All Skills", "10% to Maximum Poison Resist", "Fire Resist -30%", "Increased Attack"],
+        "The Stone of Jordan": ["Increase Maximum Mana"],
+        "Dwarf Star": ["Fire Absorb"],
+        "Carrion Wind": ["Damage Taken Goes"],
+        "The Oculus": ["Faster Cast Rate","Enhanced Defense", "Vitality", "All Resistances", "Better Chance"],
+        "Eschuta\'s Temper": ["Fire Skill Damage", "40% Faster Cast Rate"],
+
+    }
+
+    required_stats = {
+        "harlequin crest":["Defense"],
+        "eschuta\'s temper": ["+3 to Sorceress Skill Levels",r'\+\d+% to Lightning Damage', "to Energy"]
+    
+
+        }
 
     with open(file_path, "r", encoding="utf-8") as file:
         lines = file.readlines()
@@ -81,6 +101,11 @@ def analyze_file(file_path, start_date_time):
                 item_name = lines[i + 1].strip()
                 item_type = lines[i + 2].strip()
                 stats = []
+
+                if "Defense:" in item_type:
+                    defense_stat = item_type.split("Defense:")[1].strip()
+                    item_type = item_type.split("Defense:")[0].strip()
+                    stats.append(f"Defense: {defense_stat}")
 
                 if line_date_time < start_date_time:
                     i += 1
@@ -103,10 +128,17 @@ def analyze_file(file_path, start_date_time):
                 while j < len(lines) and not re.match(r'\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}', lines[j]):
                     stat = lines[j].strip()
 
-                    if not any(stat.startswith(exclude) for exclude in excluded_starts):
+                    item_specific_exclusions = additional_exclusions.get(item_name.replace('\'', '').lower(), [])
+                    item_specific_required_stats = required_stats.get(item_name.replace('\'', '').lower(), [])
+
+                    if any(required_stat.lower() in stat.lower() for required_stat in item_specific_required_stats):
+                        stats.append(stat)
+                    elif not any(exclude.lower() in stat.lower() for exclude in excluded_starts + item_specific_exclusions):
                         stats.append(stat)
 
                     j += 1
+
+
 ##item name
                 if re.search(r'(small shield|large shield|kite shield|tower shield|bone shield|spiked shield|round shield|dragon shield|ancient shield|grim shield|barbed shield|scutum|buckler|defender|pavise|heater|luna|hyperion|monarch|aegis|ward|troll nest|blade barrier|round shield)', item_name, re.IGNORECASE):
                     item_type = "Shields"
@@ -114,18 +146,22 @@ def analyze_file(file_path, start_date_time):
                     item_type = "Shields"
                 if re.search(r'(targe|rondache|heraldic shield|aerin shield|crown shield|protector shield|gilded shield|royal|shield|ancient shield|zakarum shield|vortex shield)', item_name, re.IGNORECASE):
                     item_type = "Pally Shields"
-                elif re.search(r'(bow)', item_name, re.IGNORECASE):
+                if re.search(r'(bow)', item_name, re.IGNORECASE):
                     item_type = "Bows"
-                elif re.search(r'(rainbow facet)', item_type, re.IGNORECASE):
+                if re.search(r'(rainbow facet)', item_type, re.IGNORECASE):
                     item_type = "Jewels"
-                elif re.search(r'(javelin|pilum|short spear|glavie|throwing spear|simbilan|spiculum|harpoon|balrog spear)', item_name, re.IGNORECASE):
+                if re.search(r'(rainbow facet)', item_name, re.IGNORECASE):
+                    item_type = "Jewels"
+                if re.search(r'(javelin|pilum|short spear|glavie|throwing spear|simbilan|spiculum|harpoon|balrog spear)', item_name, re.IGNORECASE):
                     item_type = "Javelins"
-                elif re.search(r'(javelin|pilum|short spear|glavie|throwing spear|simbilan|spiculum|harpoon|balrog spear)', item_type, re.IGNORECASE):
+                if re.search(r'(javelin|pilum|short spear|glavie|throwing spear|simbilan|spiculum|harpoon|balrog spear)', item_type, re.IGNORECASE):
                     item_type = "Javelins"
                 if re.search(r'(ring)', item_type, re.IGNORECASE):
                     item_type = "Rings"
                 if re.search(r'(amulet)', item_type, re.IGNORECASE):
                     item_type = "Amulets"
+                if re.search(r'(maiden spear|maiden pike|ceremonial spear|ceremonial pike|matriarchal spear|matriarchal pike|trident|brandistock|spetum|pike|fuscina|war fork|yari|lance|stygian pike|mancatcher|ghost spear|war pike)', item_name, re.IGNORECASE):
+                    item_type = "Spears"
                 if re.search(r'(maiden spear|maiden pike|ceremonial spear|ceremonial pike|matriarchal spear|matriarchal pike|trident|brandistock|spetum|pike|fuscina|war fork|yari|lance|stygian pike|mancatcher|ghost spear|war pike)', item_name, re.IGNORECASE):
                     item_type = "Spears"
                 if re.search(r'(axe|balanced axe|hatchet|cleaver|crowbill|naga|tabar|tomahawk|small crescent|decapitator|throwing axe|balanced axe|francisca|hurlbat|flying axe|winged axe)', item_name, re.IGNORECASE):
@@ -135,9 +171,9 @@ def analyze_file(file_path, start_date_time):
                 if re.search(r'(sash|belt|coil|girdle)', item_name, re.IGNORECASE):
                     item_type = "Belts"
                 if re.search(r'(boots|greaves)', item_name, re.IGNORECASE):
-                    item_type = "boots"
+                    item_type = "Boots"
                 if re.search(r'(boots|greaves)', item_type, re.IGNORECASE):
-                    item_type = "boots"
+                    item_type = "Boots"
                 if re.search(r'(circle|coronet|tiara|diadem)', item_name, re.IGNORECASE):
                     item_type = "Circlets"
                 if re.search(r'(circle|coronet|tiara|diadem)', item_type, re.IGNORECASE):
@@ -197,13 +233,13 @@ def analyze_file(file_path, start_date_time):
                 if re.search(r'(bladebuckle|goldwrap|lenymo|nightsmoke|snakecord|gloom\'s trap|razortail|snowclash|string of ears|thundergod\'s vigor|arachnid mesh|nosferatu\'s coil|verdungo\'s hearty cord)', item_name, re.IGNORECASE):
                     item_type = "Unique Belts"
                 if re.search(r'(goblin toe|gorefoot|hotsput|tearhaunch|treads of cthon|gore rider|infernostride|silkweave|war traveler|waterwalk|marrowwalk|sandstorm trek|shadow dancer)', item_name, re.IGNORECASE):
-                    item_type = "Boots"
+                    item_type = "Unique Boots"
                 if re.search(r'(Kira\'s guardian|griffon\'s eye)', item_name, re.IGNORECASE):
                     item_type = "Unique Helms"
                 if re.search(r'(bloodfist|chance guards|frostburn|magefist|the hand of broc|ghouldhide|gravepalm|hellmouth|lava gout|venom grip|dracul\'s grasp|soul drainer|steelrend)', item_name, re.IGNORECASE):
-                    item_type = "Gloves"
+                    item_type = "Unique Gloves"
                 if re.search(r'(tal rasha\'s)', item_name, re.IGNORECASE):
-                    item_type = "Tal set"
+                    item_type = "Set items"
                 if re.search(r'(biggin\'s bonnet|coif of glory|duskdeep|howltusk|tarnhelm|the face of horror|undead crown|wormskull|blackhorn\'s face|crown of thieves|darksight helm|peasant crown|rockstopper|stealskull|valkyrie wing|vampire gaze|andariel\'s visage|crown of ages|giant skull|harlequin crest|nightwing\'s veil|steel shade|veil of steel|arreat\'s face|jalal\'s mane|cereus\' bite|demonhorn\'s edge|halaberd\'s reign|ravenlore|spirit keeper|wolfhowl)', item_name, re.IGNORECASE):
                     item_type = "Unique Helms"
                 if re.search(r'(blastbark|hellclap|pluckeye|raven claw|rouge\'s bow|stormstrike|witherstring|wizendraw|cliffkiller|endlesshail|goldstrike arch|kuko shakaku|magewrath|riphook|skystrike|witchwild string|eaglehorn|widowmaker|windforce)', item_name, re.IGNORECASE):
@@ -228,6 +264,8 @@ def analyze_file(file_path, start_date_time):
                     item_type = "Unique Sorc Orbs"
                 if re.search(r'(gravenspin|maelstorm|torch of iro|ume\'s lament|arm of king leoric|blackhand key|carin shard|suicide branch|boneshade|death\'s web)', item_name, re.IGNORECASE):
                     item_type = "Unique Wands"
+                if "harlequin crest" in item_name.lower():
+                    item_name = item_name.replace("Harlequin Crest", "Shako")
 
 ##charms                
                 if "grand charm" in item_name.lower():
@@ -236,9 +274,11 @@ def analyze_file(file_path, start_date_time):
                     item_type = "Small Charm"
                 if "large charm" in item_name.lower():
                     item_type = "Large Charm"
-                item = {"name": f"{item_name} - FG:", "type": item_type, "stats": stats}
-                items[item_type].append(item)
-
+                if re.search(r'(cold rupture|crack of the heavens|flame rift|rotting fissure|the bone break|the black cleft)', item_name, re.IGNORECASE):
+                    item_type = "Sunder Charms"
+                item = {"name": f"{item_name}", "type": item_type, "stats": stats}
+                #items[item_type].append(item)
+            
                 
                 item_list = items[item_type]
                 insert_index = 0
@@ -252,9 +292,12 @@ def analyze_file(file_path, start_date_time):
                 i = j
             else:
                 i += 1
+    sorted_items = defaultdict(list)
+    for item_type in sorted(items.keys()):
+        sorted_items[item_type] = sorted(items[item_type], key=lambda x: x["name"].lower())
+
                 
-                
-    return items, runes, keys
+    return sorted_items, runes, keys
 
 
 
@@ -273,14 +316,8 @@ def browse_file(file_path_entry, date_combobox, output_text):
     start_date_time = datetime.strptime(start_date_time, format)
 
     try:
-        items, runes, keys = analyze_file(file_path, start_date_time)
-        formatted_items = []
-        for item_type, item_list in items.items():
-            formatted_items.append(f"[B]{item_type}:[\B]")
-            for item in item_list:
-                formatted_items.append("    " + item["name"])
-                for stat in item["stats"]:
-                    formatted_items.append("        " + stat)
+        sorted_items, runes, keys = analyze_file(file_path, start_date_time)
+        formatted_items = format_items(sorted_items)
         formatted_runes = [f"{key}: {value}" for key, value in runes.items()]
         formatted_keys = [f"{key}: {value}" for key, value in keys.items()]
         formatted_list = formatted_items + ["\nRunes:"] + formatted_runes + ["\nKeys:"] + formatted_keys
@@ -289,6 +326,7 @@ def browse_file(file_path_entry, date_combobox, output_text):
     except Exception as e:
         messagebox.showerror("Error", str(e))
         return
+
     pass
 
 def run_script(file_path_entry, date_combobox, output_text):
@@ -301,14 +339,8 @@ def run_script(file_path_entry, date_combobox, output_text):
     start_date_time = datetime.strptime(start_date_time, format)
 
     try:
-        items, runes, keys = analyze_file(file_path, start_date_time)
-        formatted_items = []
-        for item_type, item_list in items.items():
-            formatted_items.append(f"[B]{item_type}:[\B]")
-            for item in item_list:
-                formatted_items.append("    " + item["name"])
-                for stat in item["stats"]:
-                    formatted_items.append("        " + stat)
+        sorted_items, runes, keys = analyze_file(file_path, start_date_time)
+        formatted_items = format_items(sorted_items)
         formatted_runes = [f"{key}: {value}" for key, value in runes.items()]
         formatted_keys = [f"{key}: {value}" for key, value in keys.items()]
         formatted_list = formatted_items + ["\nRunes:"] + formatted_runes + ["\nKeys:"] + formatted_keys
@@ -317,6 +349,158 @@ def run_script(file_path_entry, date_combobox, output_text):
     except Exception as e:
         messagebox.showerror("Error", str(e))
         return
+
+
+def format_items(sorted_items):
+    classes = ["barbarian", "sorceress", "amazon", "assassin","paladin", "necromancer", "druid"]
+    formatted_items = []
+    for item_type, item_list in sorted_items.items():
+        formatted_items.append(f"[B]{item_type}:[/B]")
+        for item in item_list:
+            ethereal_prefix = ""
+            stats = []
+            is_charm = "charm" in item["name"].lower() or "charm" in item_type.lower()
+                
+            for stat in item["stats"]:
+
+                if "3 to sorceress skill levels" in stat.lower():
+                    stat = stat.replace("3 to Sorceress Skill Levels", "3 Sorc Skills")
+
+                if "defense" in stat.lower():
+                    stat = stat.replace("Defense", "Def")
+                if "life leach" in stat.lower():
+                    stat = stat.replace("Life Leach", "LL")
+                if "ethereal (cannot be repaired)" in stat.lower():
+                    stat = stat.replace("Ethereal (Cannot be Repaired)", "eth")
+                if "increased attack speed" in stat.lower():
+                    stat = stat.replace("Increased Attack Speed", "IAS")
+                if "+" in stat.lower():
+                    stat = stat.replace("+", "+")
+                for cls in classes:
+                    class_only_text = f"({cls} only)"
+                    if class_only_text.lower() in stat.lower():
+                        stat = stat.lower().replace(class_only_text.lower(), "")
+                        break
+                if re.search(r'\d+% Chance to cast', stat, re.IGNORECASE):
+                    continue
+                if re.search(r'\d+ Maximum Stamina', stat, re.IGNORECASE):
+                    continue
+                if re.search(r'\d+% Damage to Undead', stat, re.IGNORECASE):
+                    continue
+                if re.search(r'1 to All Skills', stat, re.IGNORECASE):
+                    continue
+                if re.search(r'Monster Cold Immunity is Sundered', stat, re.IGNORECASE):
+                    continue
+                if re.search(r'Monster Lightning Immunity is Sundered', stat, re.IGNORECASE):
+                    continue
+                if re.search(r'Monster Fire Immunity is Sundered', stat, re.IGNORECASE):
+                    continue
+                if "faster run/walk" in stat.lower():
+                    stat = stat.replace("Faster Run/Walk", "FRW")
+                if "faster cast rate" in stat.lower():
+                    stat = stat.replace("Faster Cast Rate", "FCR")
+                if "to attack rating" in stat.lower():
+                    stat = stat.replace("to Attack Rating", "AR")
+                if "faster hit recovery" in stat.lower():
+                    stat = stat.replace("Faster Hit Recovery", "FHR")
+                if "enhanced def" in stat.lower():
+                    stat = stat.replace("Enhanced Def", "ED")
+                if "enhanced damage" in stat.lower():
+                    stat = stat.replace("Enhanced Damage", "ED")
+                if "maximum damage" in stat.lower():
+                    stat = stat.replace("Maximum Damage", "Max Dmg")
+                if "minimum damage" in stat.lower():
+                    stat = stat.replace("Minimum Damage", "Min Dmg")
+                if "socketed" in stat.lower():
+                    stat = stat.replace("Socketed", "0s")
+                if "to battle orders" in stat.lower():
+                    stat = stat.replace("to battle orders", "to BO")
+                if "necromancer skill levels" in stat.lower():
+                    stat = stat.replace("Necromancer Skill Levels", "Necro Skills")
+                if "javelin and spear skills" in stat.lower():
+                    stat = stat.replace("javelin and spear skills", "Java Skills")
+                if "assassin skill levels" in stat.lower():
+                    stat = stat.replace("Assassin Skill Levels", "Sin Skills")
+                if "barbarian skill levels" in stat.lower():
+                    stat = stat.replace("Barbarian Skill Levels", "Barb Skills")
+                if "sorcercess skill levels" in stat.lower():
+                    stat = stat.replace("Sorceress Skill Levels", "Sorc Skills")
+                if "paladin skill levels" in stat.lower():
+                    stat = stat.replace("Paladin Skill Levels", "Pally Skills")
+                if "druid skill levels" in stat.lower():
+                    stat = stat.replace("Druid Skill Levels", "Dru Skills")
+                if "amazon skill levels" in stat.lower():
+                    stat = stat.replace("Amazon Skill Levels", "Zon Skills")
+                if "bow and crossbow skills" in stat.lower():
+                    stat = stat.replace("bow and crossbow skills", "Bow Skills")
+                if "elemental skills" in stat.lower():
+                    stat = stat.replace("elemental skills", "Ele Skills")
+                if "sorcercess skill levels" in stat.lower():
+                    stat = stat.replace("Sorceress Skill Levels", "Sorc Skills")
+                if "(based on character level)" in stat.lower():
+                    stat = stat.replace("(Based on Character Level)", "based on clvl")
+                if "life stolen per hit" in stat.lower():
+                    stat = stat.replace("Life stolen per hit", "LL")
+                if "mana stolen per hit" in stat.lower():
+                    stat = stat.replace("Mana stolen per hit", "ML")
+                if "cold resist" in stat.lower():
+                    stat = stat.replace("Cold Resist", "Cold Res")
+                if "lightning resist" in stat.lower():
+                    stat = stat.replace("Lightning Resist", "Light Res")
+                if "all resistances" in stat.lower():
+                    stat = stat.replace("All Resistances", "All Res")
+                if "all attributes" in stat.lower():
+                    stat = stat.replace("all Attributes", "Attributes")
+                if "fire resist" in stat.lower():
+                    stat = stat.replace("Fire Resist", "Fire Res")
+                if "+" in stat.lower():
+                    stat = stat.replace("+", "")
+
+                if "increase maximum durability" in stat.lower():
+                    stat = stat.replace("Increase Maximum Durability", "Increased Durability")
+                if "enemy poison resistance" in stat.lower():
+                    stat = stat.replace("Enemy Poison Resistance", "PSN Res")
+                if "poison skill damage" in stat.lower():
+                    stat = stat.replace("Poison Skill Damage", "PSN Dmg")
+            
+                if "better chance of getting magic items" in stat.lower():
+                    stat = stat.replace("Better Chance of Getting Magic Items", "MF")
+                if re.search(r'repairs 1 durability in \d+ seconds', stat.lower()):
+                    stat = "Repairs"
+                if "extra gold from monsters" in stat.lower():
+                    continue
+                if "very slow attack speed" in stat.lower():
+                    continue
+                if re.search(r'\d+ to light radius', stat.lower()):
+                    continue
+                if re.search(r'adds', stat.lower()) and not is_charm:
+                    continue
+                if re.search(r'\d+ to dexterity', stat.lower()) and not is_charm:
+                    continue
+                #if re.search(r'\d+ to energy', stat.lower()) and not is_charm:
+                    #continue
+                if re.search(r'\d+ poison damage over', stat.lower()) and not is_charm:
+                    continue
+                if re.search(r'\d+ to strength', stat.lower()):
+                    continue
+                if re.search(r'\d+ to mana', stat.lower()):
+                    continue
+                toLife = re.search(r'(\d+) to life', stat.lower())
+                if toLife and int(toLife.group(1)) <= 60 and not is_charm:
+                    continue
+                if "ethereal" in stat.lower() or "eth" in stat.lower():
+                    ethereal_prefix = "(ETH) "
+                else:
+                    stats.append(stat)
+            item_line = "    " + ethereal_prefix + item["name"] + " - FG:"
+
+            formatted_items.append(item_line)
+            formatted_stats = " | ".join(stats)
+            formatted_stats = formatted_stats.rstrip(" | ")  # Remove the trailing '|'
+            formatted_stats = formatted_stats.lstrip(" | ")
+            formatted_items.append("    " + formatted_stats)
+            formatted_items.append('')
+    return formatted_items
 
 
 
@@ -349,7 +533,7 @@ def create_license_validation_window(main_app, main_frame, notebook, output_text
     license_window.grid_rowconfigure(2, weight=1)
     license_window.grid_columnconfigure(0, weight=1)
     license_window.grid_columnconfigure(1, weight=1)
-    sv_ttk.set_theme('dark')
+    #sv_ttk.set_theme('dark')
     license_window.mainloop()
 
 
@@ -397,16 +581,16 @@ def create_main_app_window():
     ttk.Label(left_frame, text="Select Date & Time:").pack(pady=10)
     date_combobox = ttk.Combobox(left_frame, state="normal")
     date_combobox.pack(pady=10)
-    date_combobox.set("dd-mm-yyyy hh:mm:ss")
+    date_combobox.set("04-04-2023 00:00:00")
 
 
-    browse_button = ctk.CTkButton(left_frame, text="Find Looted.log", command=lambda: browse_file(file_path_entry, date_combobox, output_text))
+    browse_button = tk.Button(left_frame, text="Find Looted.log", command=lambda: browse_file(file_path_entry, date_combobox, output_text))
     browse_button.pack(pady=(0, 10))
 
-    run_button = ctk.CTkButton(left_frame, text="Run Script", command=lambda: run_script(file_path_entry, date_combobox, output_text))
+    run_button = tk.Button(left_frame, text="Run Script", command=lambda: run_script(file_path_entry, date_combobox, output_text))
     run_button.pack(pady=10)
 
-    save_button = ctk.CTkButton(left_frame, text="Save Output", command=lambda: save_output(output_text))
+    save_button = tk.Button(left_frame, text="Save Output", command=lambda: save_output(output_text))
     save_button.pack(pady=10)
 
 
@@ -421,3 +605,4 @@ if __name__ == "__main__":
     main_app, main_frame, notebook, output_text = create_main_app_window()
     create_license_validation_window(main_app, main_frame, notebook, output_text)
     main_app.mainloop()
+    main()
