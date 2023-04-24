@@ -50,35 +50,46 @@ def validate_license_key(license_entry, main_frame, license_window, output_text)
         print("me", login)
     else:
         messagebox.showerror("Error", "Invalid license key")
-    
+
+def contains_phrase(stat, phrases, exact_match=False):
+    for phrase in phrases:
+        if exact_match:
+            if stat.lower() == phrase.lower():
+                return True
+        else:
+            if re.search(r'\b' + re.escape(phrase) + r'\b.*', stat, re.IGNORECASE):
+                return True
+    return False
+
+
 
 
 def analyze_file(file_path, start_date_time):
     items = defaultdict(list)
     runes = defaultdict(int)
     keys = defaultdict(int)
-
+    excluded_exact_matches = ["(Druid Only)", "(Amazon Only)", "(Necromancer Only)", "(Sorceress Only)", "(Barbarian Only)", "(Paladin Only)", "(Assassin Only)"]
 
     excluded_starts = ["Durability", "Required Strength",
                        "Required Dexterity", "Required Level",
                        "Quantity", "Unidentified", "Can be Inserted into Socketed Items",
-                       "Keep in Inventory to Gain Bonus", "to Stength", "to Energy", "to mana", "Magic Damage",
-                       "(Barbarian Only)", "(Sorceress Only)", "(Amazon Only)", "(Druid Only)", "(Necromancer Only)",
-                       "(Paladin Only)", "(Assassin Only)", "Half Freeze Duration", "Relplenish Life", "Staff Class",
+                       "Keep in Inventory to Gain Bonus", "to Stength", "to Energy", "to mana", "Magic Damage", "Half Freeze Duration", "Relplenish Life", "Staff Class",
                        "Sword Class", "Javelin Class", "Axe Class", "Polearm Class", "Dagger Class", "Bow Class",
-                       "Crossbow Class", "Regenerate Mana", "Throw Damage:", "One-Hand Damage:", "Two-Hand Damage:",
+                       "Crossbow Class", "Regenerate Mana", "Throw Damage:", "One-Hand Damage", "Two-Hand Damage",
                        "Damage Reduced", "Poison Resist", "Replenish Life", "Level", "Attacker Takes Damage",
-                       "Poison Length Reduced", "Mace Class", "Belt Size", "Slows Target", "Slower Stamina Drain", "Heal Stamina", "Enemy Light"]
+                       "Poison Length Reduced", "Mace Class", "Belt Size", "Slows Target", "Slower Stamina Drain", "Heal Stamina", "Enemy Light", "Throw Damage", "Tal rasha\'s"]
     sunders = ["cold rupture", "crack of the heavens", "flame rift", "rotting fissure", "the bone break", "the black cleft"]
 
     additional_exclusions = {
-        "Harlequin Crest": ["+2 All Skills", "+2 to all Attributes", "Damaged Reduced", "50% Better", "Damage Reduced"],
-        "Andariel\'s Visage": ["+2 All Skills", "10% to Maximum Poison Resist", "Fire Resist -30%", "Increased Attack"],
+        "Harlequin Crest": ["All Skills", "Attributes", "Damaged Reduced", "50% Better", "Damage Reduced"],
+        "Andariel\'s Visage": ["All Skills", "10% to Maximum Poison Resist", "Fire Resist", "Increased Attack"],
         "The Stone of Jordan": ["Increase Maximum Mana"],
         "Dwarf Star": ["Fire Absorb"],
         "Carrion Wind": ["Damage Taken Goes"],
         "The Oculus": ["Faster Cast Rate","Enhanced Defense", "Vitality", "All Resistances", "Better Chance"],
-        "Eschuta\'s Temper": ["Fire Skill Damage", "40% Faster Cast Rate"],
+        "Eschuta\'s Temper": ["Fire Skill Damage", "Faster Cast Rate"],
+        "Tal Rasha\'s Adjudication": ["Skill Levels", "Light Resist"],
+        "Tal Rasha\'s Fine-Spun Cloth": ["Better Chance of", "Requirements"]
 
     }
 
@@ -125,19 +136,26 @@ def analyze_file(file_path, start_date_time):
                     continue
 
                 j = i + 3
+
+
                 while j < len(lines) and not re.match(r'\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}', lines[j]):
                     stat = lines[j].strip()
 
-                    item_specific_exclusions = additional_exclusions.get(item_name.replace('\'', '').lower(), [])
-                    item_specific_required_stats = required_stats.get(item_name.replace('\'', '').lower(), [])
+                    item_specific_exclusions = additional_exclusions.get(item_name, [])
+                    item_specific_required_stats = required_stats.get(item_name.lower(), [])
 
-                    if any(required_stat.lower() in stat.lower() for required_stat in item_specific_required_stats):
-                        stats.append(stat)
-                    elif not any(exclude.lower() in stat.lower() for exclude in excluded_starts + item_specific_exclusions):
+                    item_name_lower = item_name.lower()
+                    is_required_stat = contains_phrase(stat, item_specific_required_stats)
+
+                    should_append_stat = not contains_phrase(stat, excluded_starts) and not contains_phrase(stat, item_specific_exclusions) and not contains_phrase(stat, excluded_exact_matches, exact_match=True)
+
+                    if is_required_stat:
+                        should_append_stat = True  # Required stats take priority over excluded stats
+
+                    if should_append_stat:
                         stats.append(stat)
 
                     j += 1
-
 
 ##item name
                 if re.search(r'(small shield|large shield|kite shield|tower shield|bone shield|spiked shield|round shield|dragon shield|ancient shield|grim shield|barbed shield|scutum|buckler|defender|pavise|heater|luna|hyperion|monarch|aegis|ward|troll nest|blade barrier|round shield)', item_name, re.IGNORECASE):
@@ -160,9 +178,9 @@ def analyze_file(file_path, start_date_time):
                     item_type = "Rings"
                 if re.search(r'(amulet)', item_type, re.IGNORECASE):
                     item_type = "Amulets"
-                if re.search(r'(maiden spear|maiden pike|ceremonial spear|ceremonial pike|matriarchal spear|matriarchal pike|trident|brandistock|spetum|pike|fuscina|war fork|yari|lance|stygian pike|mancatcher|ghost spear|war pike)', item_name, re.IGNORECASE):
+                if re.search(r'(spear|maiden spear|maiden pike|ceremonial spear|ceremonial pike|matriarchal spear|matriarchal pike|trident|brandistock|spetum|pike|fuscina|war fork|yari|lance|stygian pike|mancatcher|ghost spear|war pike)', item_name, re.IGNORECASE):
                     item_type = "Spears"
-                if re.search(r'(maiden spear|maiden pike|ceremonial spear|ceremonial pike|matriarchal spear|matriarchal pike|trident|brandistock|spetum|pike|fuscina|war fork|yari|lance|stygian pike|mancatcher|ghost spear|war pike)', item_name, re.IGNORECASE):
+                if re.search(r'(spear|maiden spear|maiden pike|ceremonial spear|ceremonial pike|matriarchal spear|matriarchal pike|trident|brandistock|spetum|pike|fuscina|war fork|yari|lance|stygian pike|mancatcher|ghost spear|war pike)', item_type, re.IGNORECASE):
                     item_type = "Spears"
                 if re.search(r'(axe|balanced axe|hatchet|cleaver|crowbill|naga|tabar|tomahawk|small crescent|decapitator|throwing axe|balanced axe|francisca|hurlbat|flying axe|winged axe)', item_name, re.IGNORECASE):
                     item_type = "Axes"
@@ -377,7 +395,7 @@ def format_items(sorted_items):
                 if "+" in stat.lower():
                     stat = stat.replace("+", "+")
                 for cls in classes:
-                    class_only_text = f"({cls} only)"
+                    class_only_text = f" ({cls} only)"
                     if class_only_text.lower() in stat.lower():
                         stat = stat.lower().replace(class_only_text.lower(), "")
                         break
